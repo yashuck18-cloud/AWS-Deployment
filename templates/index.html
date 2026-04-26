@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student CRUD App</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        a { text-decoration: none; margin-right: 10px; }
+        .btn { padding: 8px 12px; background: #007bff; color: white; border-radius: 5px; }
+        .delete { background: red; }
+    </style>
+</head>
+<body>
+    <h1>Student CRUD App</h1>
+    <a href="/add" class="btn">Add Student</a>
+    <br><br>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Course</th>
+            <th>Actions</th>
+        </tr>
+
+        {% for student in students %}
+        <tr>
+            <td>{{ student.id }}</td>
+            <td>{{ student.name }}</td>
+            <td>{{ student.email }}</td>
+            <td>{{ student.course }}</td>
+            <td>
+                <a href="/edit/{{ student.id }}" class="btn">Edit</a>
+                <a href="/delete/{{ student.id }}" class="btn delete">Delete</a>
+                <a href="/ai/analyze/{{ student.id }}" class="btn" style="background: #28a745;">Analyze</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <hr style="margin: 40px 0; border: 0; border-top: 1px solid #eee;">
+
+    <!-- AI Assistant Section -->
+    <div class="ai-container" style="max-width: 600px; margin: 20px 0; padding: 25px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <h2 style="margin-top: 0; color: #1a73e8; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">✨</span> Database AI Assistant
+        </h2>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Ask anything about your students (e.g., "Show BCA students" or "How many students are there?")</p>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="ai-question" placeholder="Type your question here..." 
+                style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; outline: none; transition: border-color 0.3s;"
+                onfocus="this.style.borderColor='#1a73e8'" onblur="this.style.borderColor='#e0e0e0'">
+            <button onclick="askAI()" id="ask-btn" class="btn" style="background: #1a73e8; border: none; cursor: pointer; padding: 0 25px; font-weight: bold;">Ask AI</button>
+        </div>
+
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <span style="font-size: 12px; color: #888; align-self: center;">Try:</span>
+            <button onclick="setQuestion('How many students are there?')" class="chip">Total Count</button>
+            <button onclick="setQuestion('Show all BCA students')" class="chip">BCA Students</button>
+            <button onclick="setQuestion('Who is the student with ID 1?')" class="chip">Find by ID</button>
+        </div>
+
+        <style>
+            .chip {
+                background: #f1f3f4;
+                border: 1px solid #e0e0e0;
+                border-radius: 16px;
+                padding: 4px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .chip:hover {
+                background: #e8eaed;
+            }
+        </style>
+
+        <script>
+            function setQuestion(q) {
+                document.getElementById('ai-question').value = q;
+                askAI();
+            }
+        </script>
+
+        <div id="ai-response-container" style="margin-top: 20px; display: none;">
+            <div id="ai-loading" style="display: none; color: #1a73e8; font-weight: bold; margin-bottom: 10px;">
+                <span class="spinner"></span> Thinking...
+            </div>
+            <div id="ai-answer" style="padding: 15px; background: #f1f3f4; border-left: 5px solid #1a73e8; border-radius: 4px; white-space: pre-wrap; line-height: 1.5; color: #3c4043;"></div>
+        </div>
+    </div>
+
+    <style>
+        .spinner {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 3px solid rgba(26, 115, 232, 0.3);
+            border-radius: 50%;
+            border-top-color: #1a73e8;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        async function askAI() {
+            const questionInput = document.getElementById('ai-question');
+            const answerContainer = document.getElementById('ai-response-container');
+            const answerDiv = document.getElementById('ai-answer');
+            const loadingDiv = document.getElementById('ai-loading');
+            const askBtn = document.getElementById('ask-btn');
+            
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            // Show loading state
+            answerContainer.style.display = 'block';
+            loadingDiv.style.display = 'block';
+            answerDiv.innerText = '';
+            askBtn.disabled = true;
+            askBtn.style.opacity = '0.7';
+
+            try {
+                const response = await fetch('/ask-ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const data = await response.json();
+                
+                // Hide loading and show result
+                loadingDiv.style.display = 'none';
+                
+                if (response.ok) {
+                    answerDiv.innerText = data.answer || "No response received.";
+                    answerDiv.style.color = "#3c4043";
+                } else {
+                    answerDiv.innerText = "Error: " + (data.answer || "Something went wrong.");
+                    answerDiv.style.color = "#d93025";
+                }
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                answerDiv.innerText = "Error: Could not connect to Flask backend. Make sure the server is running.";
+                answerDiv.style.color = "#d93025";
+                console.error(error);
+            } finally {
+                askBtn.disabled = false;
+                askBtn.style.opacity = '1';
+            }
+        }
+
+        // Allow pressing Enter to ask
+        document.getElementById('ai-question').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                askAI();
+            }
+        });
+    </script>
+
+    {% if analysis %}
+    <div style="margin-top: 30px; padding: 20px; background: #e8f0fe; border: 1px solid #1a73e8; border-radius: 12px;">
+        <h2 style="color: #1a73e8; margin-top: 0;">AI Career Path Analysis</h2>
+        <p style="line-height: 1.6; color: #3c4043;"><strong>Student #{{ analyzed_id }}:</strong> {{ analysis }}</p>
+    </div>
+    {% endif %}
+</body>
+</html>
