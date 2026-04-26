@@ -123,7 +123,7 @@ def ask_ai():
     """
     # 1. Get user question from request body
     data = request.get_json()
-    user_question = data.get("question")S
+    user_question = data.get("question")
     
     if not user_question:
         return {"answer": "Please provide a question."}, 400
